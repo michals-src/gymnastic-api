@@ -1,35 +1,49 @@
 import { Hono } from 'hono';
 import { exercises, series, workouts } from '@db/schema';
-import { asc, desc, eq, sql } from 'drizzle-orm';
+import { asc, between, desc, eq, sql } from 'drizzle-orm';
 import dbConnection from '@src/db/connection';
 
 const app = new Hono();
 
-app.get('/:minMonth/:maxMonth', async (c) => {
+type TWorkout = typeof workouts.$inferSelect;
+
+app.get('/', async (c) => {
 	const db = await dbConnection(c);
 
-	const minMonth = c.req.param('minMonth') ?? 1;
-	const maxMonth = c.req.param('maxMonth') ?? new Date().getMonth() + 1;
-	const year = new Date().getFullYear();
-	const skip = +c.req.query('skip') ?? 0;
+	const from_date: any = c.req.query('from').replace('T', ' ').replace('Z', '');
+	const to_date: any = c.req.query('to').replace('T', ' ').replace('Z', '');
+	const skip = +c.req.query('skip') || 0;
 
-	const rows = await db
+	const _result = await db
 		.select()
 		.from(workouts)
-		.where(
-			sql`extract('month' from ${workouts.createdAt}) BETWEEN ${minMonth} and ${maxMonth} and extract('year' from ${workouts.createdAt}) = ${year}`
-		)
+		.where(between(workouts.createdAt, from_date, to_date))
 		.orderBy(desc(workouts.createdAt))
 		.offset(skip);
 
-	return c.json(rows);
+	const result_grouped = _result.reduce((group, item) => {
+		const key_year_month = item.createdAt.replace(/(\d{4})-(\d{2})-\d{2}(.*)/g, '$1-$2');
+		const _group = group.find((entities) => entities.key == key_year_month) || ({} as any);
+
+		if (!Boolean(_group?.key)) {
+			_group.key = key_year_month;
+			_group.values = [];
+			group.push(_group);
+		}
+
+		_group.values.push(item);
+
+		return group;
+	}, [] as Array<{ key: string; values: Array<TWorkout> }>);
+
+	return c.json(result_grouped);
 });
 
 app.get('/:year/:month', async (c) => {
 	const db = await dbConnection(c);
 	const year = c.req.param('year');
 	const month = c.req.param('month');
-	const skip = +c.req.query('skip') ?? 0;
+	const skip = +c.req.query('skip') || 0;
 
 	const rows = await db
 		.select({

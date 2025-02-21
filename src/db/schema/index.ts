@@ -1,16 +1,16 @@
-import { pgTable, integer, serial, text, timestamp, date } from 'drizzle-orm/pg-core';
+import { pgTable, integer, serial, text, date } from 'drizzle-orm/pg-core';
 
 export const exercises = pgTable('exercises', {
 	id: serial('id').primaryKey(),
 	name: text('name').notNull(),
 	muscle: text('muscle').notNull(),
-	createdAt: timestamp('created_at').notNull().defaultNow(),
+	createdAt: date('created_at').notNull().defaultNow(),
 });
 
 export const workouts = pgTable('workouts', {
 	id: serial('id').primaryKey(),
 	durationTime: integer('duration_time').default(0),
-	createdAt: timestamp('created_at').notNull().defaultNow(),
+	createdAt: date('created_at').notNull().defaultNow(),
 });
 
 export const series = pgTable('series', {
