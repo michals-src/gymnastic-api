@@ -18,7 +18,8 @@ compatibility_flags = [ "nodejs_compat_v2" ]
 # - https://developers.cloudflare.com/workers/configuration/secrets/
 
 [vars]
-DB_FACTORY='Neon'
+#DB_FACTORY='Neon'
+DB_FACTORY='Local'
 DB_URL='postgresql://XXXXXXXXXXX/XXXXXXXXXXX'
 
 # Bind the Workers AI model catalog. Run machine learning models, powered by serverless GPUs, on Cloudflare’s global network
