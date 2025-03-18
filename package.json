@@ -2,7 +2,7 @@
 	"name": "gymnastic-api",
 	"scripts": {
 		"db:generate": "drizzle-kit generate",
-		"db:migrate": "tsx ./src/migrate.ts",
+		"db:migrate": "tsx ./src/db/schema/migrate.ts",
 		"db:seed": "tsx ./src/seed.ts",
 		"dev": "wrangler dev",
 		"deploy": "wrangler deploy --minify",
