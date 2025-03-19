@@ -1,11 +1,11 @@
-import { exercises, workout_exercises, workout_sets } from '@db/schema';
+import { workout_exercises, workout_sets } from '@db/schema';
 import dbConnection from '@src/db/connection';
-import { and, eq } from 'drizzle-orm';
+import { and, asc, eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 
 const app = new Hono();
 
-app.get('/:id/exercises', async (c) => {
+app.get('/:id/exercise/sets', async (c) => {
 	const request_params = await c.req.param();
 
 	if (Number.isNaN(request_params?.id)) {
@@ -16,20 +16,16 @@ app.get('/:id/exercises', async (c) => {
 	const _request_params_id = Number(request_params?.id);
 
 	const db = await dbConnection(c);
-	const _result_db_workout_exercises = await db
-		.select({
-			id: workout_exercises.id,
-			workout_id: workout_exercises.workout_id,
-			exercise_id: workout_exercises.exercise_id,
-			name: exercises.name,
-		})
+	const _result_workout_exercise_sets = await db
+		.select()
 		.from(workout_exercises)
-		.leftJoin(exercises, eq(exercises.id, workout_exercises.id))
+		.rightJoin(workout_sets, eq(workout_sets.workout_exercise_id, workout_exercises.id))
+		.orderBy(asc(workout_sets.order))
 		.where(eq(workout_exercises.workout_id, _request_params_id));
 
 	return c.json({
-		Items: _result_db_workout_exercises,
-		TotalCount: _result_db_workout_exercises?.length || 0,
+		Items: _result_workout_exercise_sets,
+		TotalCount: _result_workout_exercise_sets?.length || 0,
 	});
 });
 
@@ -44,18 +40,22 @@ app.post('/:id/exercises', async (c) => {
 	}
 
 	const _params_workout_id = Number(request_params?.id);
-	const _body_exercise_id = Number(request_body?.exerciseId);
+	const _body_workout_exercise_id = Number(request_body?.exerciseId);
+	const _body_workout_exercise_sets = request_body?.exerciseSets ?? [];
+
+	const _workout_exercise_sets = _body_workout_exercise_sets.map((set) => ({
+		workout_exercise_id: _body_workout_exercise_id,
+		count: set.count,
+		weight: set.weight,
+	}));
 
 	const db = await dbConnection(c);
-	const [_result_insert] = await db
-		.insert(workout_exercises)
-		.values({
-			workout_id: _params_workout_id,
-			exercise_id: _body_exercise_id,
-		})
-		.returning();
+	const _result_insert = await db.insert(workout_sets).values(_workout_exercise_sets).returning();
 
-	return c.json(_result_insert);
+	return c.json({
+		Items: _result_insert,
+		TotalCount: _result_insert?.length || 0,
+	});
 });
 
 // Usuwanie ćwiczenia z treningu

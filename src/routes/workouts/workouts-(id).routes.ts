@@ -1,4 +1,4 @@
-import { exercises, series, workouts } from '@db/schema';
+import { exercises, series, workout_exercises, workout_sets, workouts } from '@db/schema';
 import dbConnection from '@src/db/connection';
 import { asc, eq } from 'drizzle-orm';
 import { Hono } from 'hono';
@@ -60,7 +60,6 @@ app.put('/:id', async (c) => {
 
 app.delete('/:id', async (c) => {
 	const request_params = await c.req.param();
-	const request_body = await c.req.json();
 
 	if (Number.isNaN(request_params?.id)) {
 		c.status(400);
@@ -70,7 +69,12 @@ app.delete('/:id', async (c) => {
 	const _request_params_id = Number(request_params?.id);
 
 	const db = await dbConnection(c);
-	await db.delete(workouts).where(eq(workouts.id, _request_params_id));
+	const [_result_workout_delete] = await db.delete(workouts).where(eq(workouts.id, _request_params_id)).returning();
+	const [_result_workout_exercise_delete] = await db
+		.delete(workout_exercises)
+		.where(eq(workout_exercises.workout_id, _result_workout_delete.id))
+		.returning();
+	await db.delete(workout_sets).where(eq(workout_sets.workout_exercise_id, _result_workout_exercise_delete.id));
 
 	return c.json(null);
 });
