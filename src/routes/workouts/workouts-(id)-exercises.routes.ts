@@ -1,6 +1,6 @@
-import { exercises, workout_exercises, workout_sets } from '@db/schema';
+import { exercises, workout_exercises } from '@db/schema';
 import dbConnection from '@src/db/connection';
-import { and, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 
 const app = new Hono();
@@ -33,7 +33,6 @@ app.get('/:id/exercises', async (c) => {
 	});
 });
 
-// Dodawanie ćwiczenia do treningu
 app.post('/:id/exercises', async (c) => {
 	const request_params = await c.req.param();
 	const request_body = await c.req.json();
@@ -56,31 +55,6 @@ app.post('/:id/exercises', async (c) => {
 		.returning();
 
 	return c.json(_result_insert);
-});
-
-// Usuwanie ćwiczenia z treningu
-app.delete('/:id/exercises', async (c) => {
-	const request_params = await c.req.param();
-	const request_body = await c.req.json();
-
-	if (Number.isNaN(request_params?.id)) {
-		c.status(400);
-		return c.json(null);
-	}
-
-	const _params_workout_id = Number(request_params?.id);
-	const _body_exercise_id = Number(request_body?.exerciseId);
-
-	const db = await dbConnection(c);
-	const [_result_delete] = await db
-		.delete(workout_exercises)
-		.where(and(eq(workout_exercises.workout_id, _params_workout_id), eq(workout_exercises.exercise_id, _body_exercise_id)))
-		.returning();
-	await db.delete(workout_sets).where(eq(workout_sets.workout_exercise_id, _result_delete.id));
-
-	return c.json({
-		status: true,
-	});
 });
 
 export default app;
