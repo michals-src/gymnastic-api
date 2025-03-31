@@ -1,11 +1,10 @@
 import { workouts } from '@db/schema';
 import dbConnection from '@src/db/connection';
-import { between, desc } from 'drizzle-orm';
+import { WorkoutsAddApiModel, WorkoutsApiModel } from '@src/models/models-api/workouts-api.model';
+import { between, count, desc } from 'drizzle-orm';
 import { Hono } from 'hono';
 
 const app = new Hono();
-
-type TWorkout = typeof workouts.$inferSelect;
 
 app.post('/', async (c) => {
 	const db = await dbConnection(c);
@@ -21,20 +20,27 @@ app.post('/', async (c) => {
 		.replace('T', ' ')
 		.replace('Z', '');
 
-	const rows = await db
-		.select({
-			workouts,
-		})
+	const _query_alias = db
+		.select()
 		.from(workouts)
 		.where(between(workouts.created_at, _date_from, _date_to))
 		.orderBy(desc(workouts.created_at))
-		.limit(_params_limit)
-		.offset(_params_skip);
+		.as('queryAlias');
 
-	return c.json(rows);
+	const _result_select = await db.select().from(_query_alias).limit(_params_limit).offset(_params_skip);
+	const [_result_aggregate] = await db
+		.select({
+			totalCount: count(_query_alias.id),
+		})
+		.from(_query_alias);
+
+	return c.json({
+		items: _result_select,
+		..._result_aggregate,
+	} as WorkoutsApiModel);
 });
 
-app.post('/', async (c) => {
+app.post('/add', async (c) => {
 	const db = await dbConnection(c);
 	const _request_body = await c.req.json();
 	const _body_date = _request_body?.date ? _request_body.date : new Date().toISOString();
@@ -46,7 +52,7 @@ app.post('/', async (c) => {
 		})
 		.returning();
 
-	return c.json(_result_insert);
+	return c.json(_result_insert as WorkoutsAddApiModel);
 });
 
 export default app;
