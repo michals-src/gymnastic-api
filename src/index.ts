@@ -4,6 +4,7 @@ import workoutsRouting from './routes/workouts/workouts';
 import seriesRouting from './routes/series';
 import exercisesAtlasRouting from './routes/exercises-atlas/index.routes';
 import muscleGroupsRouting from './routes/muscle-groups/index.routes';
+import atlasRouting from './routes/atlas/index.routes';
 
 import { cors } from 'hono/cors';
 
@@ -15,9 +16,9 @@ app.get('/', async (c) => {
 
 app.use('*', cors());
 
-app.route('/muscle-groups', muscleGroupsRouting);
-app.route('/exercises-atlas', exercisesAtlasRouting);
-
+app.route('/muscleGroups', muscleGroupsRouting);
+app.route('/exercisesAtlas', exercisesAtlasRouting);
+app.route('/atlas', atlasRouting);
 app.route('/workouts', workoutsRouting);
 app.route('/series', seriesRouting);
 
